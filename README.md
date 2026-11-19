@@ -36,6 +36,15 @@ npm test
 npm run build
 ```
 
+### Deploy on Render (free Web Service)
+
+Create **one Web Service** only (no Postgres). Connect this repo and use the checked-in [`render.yaml`](render.yaml), or set manually:
+
+- **Build command:** `npm ci --include=dev && npm run build`
+- **Start command:** `npm start`
+
+Render runs `npm ci` with production mode by default, which skips `devDependencies` (`vite`, `typescript`, etc.) and breaks the build. `--include=dev` fixes that. Session data uses local SQLite on ephemeral disk; reload keeps changes until the instance restarts or redeploys.
+
 `npm run dev` starts Express with Vite middleware and a local SQLite file (`activation.sqlite`). `npm run build` type-checks the repo and bundles the React client into `client/dist`. `npm start` serves that build from the same Express app with the same API. The codebase is split into **`domain/`** (types, ranking rules, and `applyChange`), **`server/`** (HTTP session handling and SQLite persistence), and **`client/`** (React UI by feature). Domain rules drive both on-screen explanations and server validation. A versioned write prevents one browser tab from silently overwriting a concurrent change. A random HTTP-only cookie isolates each visitor’s demo records. Changes survive reload but the cookie is scoped to one browser and expires after 30 days.
 
 ## Verification and ownership
