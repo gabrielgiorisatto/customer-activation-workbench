@@ -1,72 +1,77 @@
 # Customer Activation Workbench
 
-[Public prototype](https://customer-activation-workbench.breathtakingboot32.chatgpt.site) · [Public source](https://github.com/gabrielgiorisatto/customer-activation-workbench)
+**Live demo:** https://customer-activation-workbench.onrender.com/  
+**Source:** https://github.com/gabrielgiorisatto/customer-activation-workbench
 
-Each account has a stable `id` for API updates (`PATCH /api/accounts/:id`); the six seed accounts use fixed demo UUIDs in `domain/seed-ids.ts`, and account names stay unique labels in the UI.
+Onboarding managers use this app to see which customer accounts need help this week, plan up to two interventions, and record proof that finance approved a representative invoice through the agreed workflow—that’s “first value,” not just completed tasks.
 
-The head of Customer Success buys the workbench. An onboarding manager uses it to decide where to spend two intervention slots and establish whether a customer can use the invoice approval workflow. The workbench replaces the shared checklist as the source for onboarding decisions. A milestone records activity. First value requires a representative invoice reference, the approving finance owner, the approval date, and a description of the agreed workflow used.
+Demo date in the UI: **19 Nov 2026**. Six fictional seed accounts. Data is synthetic.
 
-## Reviewer walkthrough
+---
 
-The fixed demo date is **November 19, 2026**. The six starting accounts are fictional. An onboarding start of November 5 is a sample assumption.
+## Stack
 
-1. Open **Epsilon**. It is five days overdue, with an unassigned account owner, no recorded milestones and an unknown cause. Try saving an intervention without an action owner. Then enter a next action such as “Investigate the handoff and identify the finance owner,” assign it to the onboarding manager, and follow up on November 20. Reload and check the plan and the remaining unverified first value.
-2. Compare **Alpha** and **Beta**. Alpha is due in three days and its mapping blocker can be addressed by an internal specialist. Beta is due in two days and needs a customer-provided policy. Check Beta’s policy milestone and see that the dependency remains open. A resolution requires recording confirmation from the responsible party.
-3. Open **Gamma**. It already shows verified approval from November 18. Compare **Zeta**, which is due tomorrow and needs agreement on the representative workflow, and **Delta**, which has scheduled setup and no active blocker.
-4. Return to **Epsilon**. Submit first value without evidence and check validation. Then record a fictional invoice reference, finance owner, approval date of November 19, and a description of the agreed approval. Confirm the account moves to Activated and frees its slot. Try the Activated filter. To see an empty state, record a fictional confirmation that resolves Beta's policy dependency and filter by Waiting on customer.
+| Layer | Tech |
+|-------|------|
+| UI | React 19, Tailwind 4, Vite |
+| API | Express 5, `handleRequest` + cookie session |
+| Persistence | SQLite (`node:sqlite`), one row per browser session |
+| Rules | Shared TypeScript in `domain/` (same logic in UI and server) |
+| Tests | Vitest |
 
-## Decision rules
+**Repo layout**
 
-An overdue account with no intervention and a dependency that is not exclusively customer-owned gets first priority. An internal blocker due within three days comes next, followed by other open internal, joint or unknown blockers. Ties use target date and then account name. Customer-owned dependencies stay visible for follow-up while the workbench recommends accounts with more direct intervention options. Zeta can become the next recommendation when a slot opens.
+- `domain/` — types, ranking, validation, `applyChange`, seed data and fixed account UUIDs in `seed-ids.ts`
+- `server/` — Express app, session API, schema
+- `client/` — React pages: workbench (`/`), data explorer (`/data`), guide (`/guide`)
 
-The manager can override the recommendation by planning an intervention for any unverified account. Each Monday–Sunday week can hold two active plans, counted by follow-up date. The dashboard shows capacity for the week of the demo reference date and lists other weeks separately. A plan can be edited or released. Confirming first value releases capacity and leaves the record intact. An action owner is distinct from the account owner. Proof of first value needs a valid date from onboarding start to the demo date. Recorded open workflow dependencies must be resolved before verification. Resolution relies on the manager’s record of the confirmation.
+Accounts are keyed by **`id`** (`PATCH /api/accounts/:id`). Names are labels only and must stay unique in the portfolio.
 
-The trade-off is that the workbench prioritizes an actionable internal fix over some closer deadlines. The ranking is a deterministic scheduling rule.
+---
 
-## Proposed metric
+## Run and deploy
 
-**Time to verified first value** is the elapsed calendar days from recorded onboarding start to the date of the recorded, verified invoice approval. Report the median for verified accounts alongside the count and age of unverified accounts in the same cohort, so stalled accounts remain visible. Completed task count misses whether a finance owner got an invoice through the agreed process. The demo makes no claim about actual customer outcomes or savings.
-
-## Run locally
-
-Requires Node 24 and npm. No cloud account or credentials are needed for development.
+**Local** (Node 24, no secrets):
 
 ```sh
 npm ci
-npm run dev
+npm run dev    # http://localhost:5173 — Express + Vite + activation.sqlite
 npm test
 npm run build
+npm start      # serves client/dist + API
 ```
 
-### Deploy on Render (free Web Service)
+**Render** (one Web Service, no Postgres): see [`render.yaml`](render.yaml). Build: `npm ci --include=dev && npm run build`. Start: `npm start`. Session data lives on the instance disk—it survives reload but may reset after redeploy or long idle on the free tier.
 
-Create **one Web Service** only (no Postgres). Connect this repo and use the checked-in [`render.yaml`](render.yaml), or set manually:
+---
 
-- **Build command:** `npm ci --include=dev && npm run build`
-- **Start command:** `npm start`
+## Reviewer walkthrough
 
-Render runs `npm ci` with production mode by default, which skips `devDependencies` (`vite`, `typescript`, etc.) and breaks the build. `--include=dev` fixes that. Session data uses local SQLite on ephemeral disk; reload keeps changes until the instance restarts or redeploys.
+1. **Epsilon** — overdue, no owner. Try an intervention without action owner (validation), then plan one with owner and follow-up 20 Nov. Reload; plan should persist.
+2. **Alpha vs Beta** — internal mapping blocker vs customer policy dependency. On Beta, completing a milestone must not clear the customer blocker without a resolution note.
+3. **Gamma** — already activated with evidence. **Zeta** / **Delta** — contrast blocked vs in progress.
+4. **Epsilon again** — try verify without evidence, then submit valid evidence (invoice, approver, date, workflow). Account becomes Activated and frees a weekly slot. Use filters; resolve Beta’s blocker to try an empty filter state.
 
-`npm run dev` starts Express with Vite middleware and a local SQLite file (`activation.sqlite`). `npm run build` type-checks the repo and bundles the React client into `client/dist`. `npm start` serves that build from the same Express app with the same API. The codebase is split into **`domain/`** (types, ranking rules, and `applyChange`), **`server/`** (HTTP session handling and SQLite persistence), and **`client/`** (React UI by feature). Domain rules drive both on-screen explanations and server validation. A versioned write prevents one browser tab from silently overwriting a concurrent change. A random HTTP-only cookie isolates each visitor’s demo records. Changes survive reload but the cookie is scoped to one browser and expires after 30 days.
+Guide page at `/guide` summarizes priority and capacity rules.
 
-## Verification and ownership
+---
 
-Vitest covers the initial ranking and date boundaries, missing action owner and past follow-up, the two-slot cap, activation evidence requirements, Beta’s dependency after a milestone update, persistence and session isolation using real SQLite, and Data explorer snapshot queries. Tests live beside the code they exercise under `domain/`, `server/`, and `client/`. The production build checks application types and bundles the React client. The walkthrough above is a reproducible manual checklist.
+## Product rules (short)
 
-The exercise brief, core flow, and technology requirements were supplied by Gabriel. Codex used them to implement the UI, rules, database and verification. The written walkthrough and tests are available for Gabriel to reproduce independently.
+- **Recommendations:** overdue (non–customer-only blocker) first; then internal blockers due within 3 days; then other internal/joint/unknown; tie-break target date, then name. Customer-owned blockers are tracked but not auto-prioritized like internal fixes.
+- **Capacity:** two active interventions per calendar week (Monday–Sunday), by follow-up date. Override by planning any account.
+- **Activation:** evidence required; open blockers must be resolved first. Marking a milestone done does not satisfy a customer dependency (e.g. Beta policy).
 
-The demo uses typed attestations as evidence. It has no invoice engine, CRM, messaging, authentication, team sharing, or production-grade storage cleanup. The latest blocker replaces the previous blocker when a new one is recorded. A production next step would be an audit history and explicit retention. Screen-reader coverage and load testing are outside the verification performed here.
+**Metric (proposed):** median days from onboarding start to verified approval date; report alongside count of unverified accounts.
 
-## Data explorer
+---
 
-Open **Data explorer** at `/data` to inspect the current demo session. The page loads account data from the same API as the workbench and builds an in-memory SQLite snapshot with six tables. The `activity_history` table exposes saved account events, including the timestamp in UTC. Queries execute in the browser and return up to 100 rows. **Refresh data** fetches a new snapshot. To restore the original seed, choose **Reset demo data** and confirm. The server removes saved changes for that session only.
+## Tests and scope
 
-## Managing your own accounts
+`npm test` checks ranking, validation, two-slot weeks, activation rules, SQLite session isolation, and read-only explorer SQL. Tests sit next to code in `domain/`, `server/`, and `client/`.
 
-Use **New account** to enter the name, desired outcome, onboarding start, target date and optional owner. Start with the invoice-approval milestones or an empty list. On an account, **Edit account** updates its details while preserving its blocker, intervention, milestones and approval evidence. **Add milestone** offers editable suggestions or a custom name, and **Edit** renames an existing milestone while preserving completion. Milestone completion tracks activity. The finance owner's representative invoice approval is verified in **First value milestone**. The demo reference date and two-intervention limit apply to the whole portfolio. Reset restores the six seeded examples and discards custom accounts in that session.
+**In scope:** demo workflow, reload persistence per browser cookie, basic a11y on controls.
 
-## Activity history
+**Out of scope:** real invoice/CRM integrations, auth, multi-user prod storage, predictive ML.
 
-Each account shows its latest 20 recorded changes. Activity begins with changes made after this feature was introduced. The server saves the activity entry and the account update together. Timestamps reflect when an update was saved, in UTC. Resetting the demo clears the session's activity along with its other saved changes.
-
-When changing the persisted data model or database schema, update the Data explorer snapshot and its tests in the same change. Expose the new fields and relationships for the current session.
+Built for a timed product exercise; AI tools assisted implementation—logic, walkthrough, and tests are in this repo for independent review.
