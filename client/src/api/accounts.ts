@@ -1,4 +1,4 @@
-import type { Account, Change } from './domain'
+import type { Account, Change } from '@domain/index.ts'
 
 export async function loadAccounts(): Promise<Account[]> {
   const response = await fetch('/api/accounts')

@@ -36,11 +36,11 @@ npm test
 npm run build
 ```
 
-The development server implements the same API using Node's SQLite module and the checked-in migration. Production runs a Cloudflare Worker with Sites-managed D1. The build embeds the Vite assets in the Worker and packages the SQL migration. React and Tailwind render the workbench, and TypeScript domain rules drive both UI explanations and server-side validation. A versioned write prevents one browser tab from silently overwriting a concurrent change. A random HTTP-only cookie isolates each visitor’s demo records. Changes survive reload but the cookie is scoped to one browser and expires after 30 days.
+`npm run dev` starts Express with Vite middleware and a local SQLite file (`activation.sqlite`). `npm run build` type-checks the repo and bundles the React client into `client/dist`. `npm start` serves that build from the same Express app with the same API. The codebase is split into **`domain/`** (types, ranking rules, and `applyChange`), **`server/`** (HTTP session handling and SQLite persistence), and **`client/`** (React UI by feature). Domain rules drive both on-screen explanations and server validation. A versioned write prevents one browser tab from silently overwriting a concurrent change. A random HTTP-only cookie isolates each visitor’s demo records. Changes survive reload but the cookie is scoped to one browser and expires after 30 days.
 
 ## Verification and ownership
 
-Vitest covers the initial ranking and date boundaries, missing action owner and past follow-up, the two-slot cap, activation evidence requirements, Beta’s dependency after a milestone update, and persistence and session isolation using real SQLite. The production build checks application types and bundles the frontend and Worker. The walkthrough above is a reproducible manual checklist.
+Vitest covers the initial ranking and date boundaries, missing action owner and past follow-up, the two-slot cap, activation evidence requirements, Beta’s dependency after a milestone update, persistence and session isolation using real SQLite, and Data explorer snapshot queries. Tests live beside the code they exercise under `domain/`, `server/`, and `client/`. The production build checks application types and bundles the React client. The walkthrough above is a reproducible manual checklist.
 
 The exercise brief, core flow, and technology requirements were supplied by Gabriel. Codex used them to implement the UI, rules, database and verification. The written walkthrough and tests are available for Gabriel to reproduce independently.
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { demoDay, invoiceOutcome, starterMilestones, suggestedMilestones, type Account, type Change } from './domain'
+import { demoDay, invoiceOutcome, starterMilestones, suggestedMilestones, type Account, type Change } from '@domain/index.ts'
 
 export type AccountEditorMode =
   | { type: 'create' }

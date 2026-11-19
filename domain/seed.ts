@@ -1,4 +1,4 @@
-import { invoiceOutcome, type Account } from './domain.ts'
+import { invoiceOutcome, type Account } from './model.ts'
 
 export function seed(): Account[] {
   const common = {

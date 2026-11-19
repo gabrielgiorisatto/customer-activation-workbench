@@ -1,7 +1,7 @@
 import initSqlJs from 'sql.js'
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url&inline'
-import type { Account } from './domain'
-import { populateSnapshot, selectSnapshot } from './explorer-sql'
+import type { Account } from '@domain/index.ts'
+import { populateSnapshot, selectSnapshot } from './explorer-sql.ts'
 
 self.onmessage = async ({ data }: MessageEvent<{ accounts: Account[]; sql: string }>) => {
   try {

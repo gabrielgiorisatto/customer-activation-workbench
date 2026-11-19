@@ -1,6 +1,6 @@
 import { Activity, BookOpen, CheckCircle2 } from 'lucide-react'
-import SiteNav from './site-nav'
-import { capacity } from './domain'
+import SiteNav from '../shell/SiteNav.tsx'
+import { capacity } from '@domain/index.ts'
 
 const walkthrough = [
   { title: 'Inspect an account', detail: 'Open Epsilon in the Account queue. The target is overdue, the account owner is unassigned, and the cause of the delay is unknown. The status explanation shows what needs attention.' },

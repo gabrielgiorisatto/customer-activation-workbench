@@ -1,9 +1,9 @@
-import SiteNav from './site-nav'
+import SiteNav from '../shell/SiteNav.tsx'
 import { useEffect, useRef, useState } from 'react'
 import { Activity, Database, Play, RefreshCw } from 'lucide-react'
-import { loadAccounts } from './client'
-import type { Account } from './domain'
-import { tables, type selectSnapshot } from './explorer-sql'
+import { loadAccounts } from '../../api/accounts.ts'
+import type { Account } from '@domain/index.ts'
+import { tables, type selectSnapshot } from './explorer-sql.ts'
 
 type Result = ReturnType<typeof selectSnapshot>
 const initialQuery = 'SELECT * FROM accounts ORDER BY target_date;'
