@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { createRoot } from 'react-dom/client'
 import { Activity, AlertCircle, CalendarDays, Check, Circle, Crosshair, Layers3, ListFilter, Plus, Users, X } from 'lucide-react'
-import { accountKey, activated, capacity, dateLabel, deadline, demoDay, explainStatus, historyLimit, interventionWeek, priority, recommendations, status, weekStart, type Account, type Change, type Party } from './domain'
-import { loadAccounts, updateAccount } from './client'
-import './style.css'
-
-import DataExplorer from './data-explorer'
-import Guide from './guide'
-import SiteNav from './site-nav'
-import AccountEditor, { type AccountEditorMode } from './account-editor'
+import { accountKey, activated, capacity, dateLabel, deadline, demoDay, explainStatus, historyLimit, interventionWeek, priority, recommendations, status, weekStart, type Account, type Change, type Party } from '@domain/index.ts'
+import { loadAccounts, updateAccount } from '../../api/accounts.ts'
+import SiteNav from '../shell/SiteNav.tsx'
+import AccountEditor, { type AccountEditorMode } from '../accounts/AccountEditor.tsx'
 
 const filters = ['All accounts', 'Needs attention', 'Blocked', 'Waiting on customer', 'In progress', 'Activated'] as const
 type Filter = typeof filters[number]
@@ -23,7 +18,7 @@ function StatusPill({ account }: { account: Account }) {
   return <Chip tone={state.tone}>{state.label}</Chip>
 }
 
-function App() {
+export default function WorkbenchPage() {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -368,7 +363,3 @@ function EditDialog({ account, editor, busy, onClose, onSave }: {
   </dialog>
 }
 
-const page = location.pathname.replace(/\/$/, '')
-createRoot(document.getElementById('root')!).render(
-  page === '/data' ? <DataExplorer /> : page === '/guide' ? <Guide /> : <App />,
-)

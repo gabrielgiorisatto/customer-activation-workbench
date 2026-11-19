@@ -1,14 +1,6 @@
-import { applyChange, type Account, type Change } from '../src/domain.ts'
-import { seed } from '../src/seed.ts'
-
-export type Database = {
-  prepare(sql: string): {
-    bind(...values: (string | number)[]): {
-      first<T>(): Promise<T | null>
-      run(): Promise<{ meta: { changes: number } }>
-    }
-  }
-}
+import { applyChange, type Account, type Change } from '../../domain/index.ts'
+import { seed } from '../../domain/seed.ts'
+import type { Database } from './database.ts'
 
 function parseChange(input: unknown): Change | undefined {
   if (!input || typeof input !== 'object' || !('type' in input)) return
@@ -35,7 +27,7 @@ function readAccounts(payload?: string): Account[] {
   return accounts.map(({ update: _seedNote, ...account }) => account)
 }
 
-export async function api(request: Request, db: Database) {
+export async function handleRequest(request: Request, db: Database) {
   const url = new URL(request.url)
   const storedId = request.headers.get('cookie')?.match(/(?:^|;\s*)activation_demo=([\da-f-]{36})(?:;|$)/)?.[1]
   const id = storedId ?? crypto.randomUUID()
@@ -75,3 +67,6 @@ export async function api(request: Request, db: Database) {
   }
   return json({ errors: { form: 'The account changed in another tab. Try again.' } }, 409)
 }
+
+/** @deprecated Use handleRequest */
+export const api = handleRequest

@@ -1,5 +1,5 @@
 import type { Database, SqlValue } from 'sql.js'
-import { accountKey, activated, status, type Account } from './domain'
+import { accountKey, activated, status, type Account } from '@domain/index.ts'
 
 export const tables = ['accounts', 'milestones', 'interventions', 'blockers', 'activation_evidence', 'activity_history'] as const
 
