@@ -52,7 +52,7 @@ export async function handleRequest(request: Request, db: Database) {
   const raw = await request.text()
   if (raw.length > 10_000) return json({ errors: { form: 'Update is too large.' } }, 413)
   let change: Change | undefined
-  try { change = parseChange(JSON.parse(raw)) } catch { /* Invalid JSON. */ }
+  try { change = parseChange(JSON.parse(raw)) } catch { }
   if (!change || (change.type === 'create') !== creating) return json({ errors: { form: 'Invalid update.' } }, 400)
   for (let attempt = 0; attempt < 3; attempt++) {
     const row = await read()
@@ -67,6 +67,3 @@ export async function handleRequest(request: Request, db: Database) {
   }
   return json({ errors: { form: 'The account changed in another tab. Try again.' } }, 409)
 }
-
-/** @deprecated Use handleRequest */
-export const api = handleRequest
