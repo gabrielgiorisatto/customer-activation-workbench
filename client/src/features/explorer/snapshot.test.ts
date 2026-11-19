@@ -1,7 +1,7 @@
 import initSqlJs from 'sql.js'
 import { describe, expect, it } from 'vitest'
 import { applyChange } from '@domain/index.ts'
-import { seed } from '@domain/seed.ts'
+import { seed, seedAccountIds } from '@domain/seed.ts'
 import { populateSnapshot, selectSnapshot } from './explorer-sql.ts'
 
 const action = {
@@ -14,7 +14,7 @@ it('joins snapshot tables and rejects writes and additional statements', async (
   const SQL = await initSqlJs()
   const db = new SQL.Database()
   try {
-    const accounts = applyChange(seed(), 'Epsilon', { type: 'action', value: action }).accounts
+    const accounts = applyChange(seed(), seedAccountIds.Epsilon, { type: 'action', value: action }).accounts
     populateSnapshot(db, accounts)
     expect(selectSnapshot(db, 'SELECT a.account, e.invoice FROM accounts a JOIN activation_evidence e USING(account);').rows)
       .toEqual([['Gamma', 'DEMO-GAM-014']])

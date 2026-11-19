@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { activated, demoDay, type Change } from '../domain/index.ts'
-import { seed } from '../domain/seed.ts'
+import { seed, seedAccountIds } from '../domain/seed.ts'
+
+const { Alpha, Epsilon, Zeta } = seedAccountIds
 import { handleRequest } from './src/sessions.ts'
 import { openMemoryDatabase } from './src/sqlite-store.ts'
 
@@ -18,7 +20,7 @@ describe('HTTP sessions', () => {
       const url = 'https://demo.test/api/accounts'
       const initial = await handleRequest(new Request(url), db)
       const cookie = initial.headers.get('set-cookie')!.split(';')[0]
-      const patch = (change: Change) => handleRequest(new Request(url + '/Epsilon', {
+      const patch = (change: Change) => handleRequest(new Request(`${url}/${Epsilon}`, {
         method: 'PATCH', headers: { cookie }, body: JSON.stringify(change),
       }), db)
       expect((await patch({ type: 'action', value: { ...action, owner: '' } })).status).toBe(422)
@@ -28,10 +30,10 @@ describe('HTTP sessions', () => {
       expect(reloadedEpsilon.action).toEqual(action)
       expect(reloadedEpsilon.history?.[0].title).toBe('Intervention planned')
       const secondAction = { ...action, description: 'Fix Alpha’s sample mapping', followUp: '2026-11-19' }
-      expect((await handleRequest(new Request(url + '/Alpha', {
+      expect((await handleRequest(new Request(`${url}/${Alpha}`, {
         method: 'PATCH', headers: { cookie }, body: JSON.stringify({ type: 'action', value: secondAction }),
       }), db)).status).toBe(200)
-      expect((await handleRequest(new Request(url + '/Zeta', {
+      expect((await handleRequest(new Request(`${url}/${Zeta}`, {
         method: 'PATCH', headers: { cookie }, body: JSON.stringify({ type: 'action', value: action }),
       }), db)).status).toBe(422)
       const plans = await handleRequest(new Request(url, { headers: { cookie } }), db)
@@ -43,7 +45,7 @@ describe('HTTP sessions', () => {
       const other = await handleRequest(new Request(url), db)
       expect(find((await other.json()).accounts, 'Epsilon').action).toBeUndefined()
       const otherCookie = other.headers.get('set-cookie')!.split(';')[0]
-      await handleRequest(new Request(url + '/Epsilon', {
+      await handleRequest(new Request(`${url}/${Epsilon}`, {
         method: 'PATCH', headers: { cookie: otherCookie }, body: JSON.stringify({ type: 'action', value: action }),
       }), db)
       const resetUrl = 'https://demo.test/api/reset'

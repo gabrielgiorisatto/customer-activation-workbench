@@ -2,6 +2,8 @@
 
 [Public prototype](https://customer-activation-workbench.breathtakingboot32.chatgpt.site) · [Public source](https://github.com/gabrielgiorisatto/customer-activation-workbench)
 
+Each account has a stable `id` for API updates (`PATCH /api/accounts/:id`); the six seed accounts use fixed demo UUIDs in `domain/seed-ids.ts`, and account names stay unique labels in the UI.
+
 The head of Customer Success buys the workbench. An onboarding manager uses it to decide where to spend two intervention slots and establish whether a customer can use the invoice approval workflow. The workbench replaces the shared checklist as the source for onboarding decisions. A milestone records activity. First value requires a representative invoice reference, the approving finance owner, the approval date, and a description of the agreed workflow used.
 
 ## Reviewer walkthrough
