@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Activity, AlertCircle, CalendarDays, Check, Circle, Crosshair, Layers3, ListFilter, Plus, Users, X } from 'lucide-react'
-import { accountKey, activated, capacity, dateLabel, deadline, demoDay, explainStatus, historyLimit, interventionWeek, priority, recommendations, status, weekStart, type Account, type Change, type Party } from '@domain/index.ts'
+import { accountKey, activated, capacity, dateLabel, deadline, demoDay, explainStatus, interventionWeek, priority, recommendations, status, weekStart, type Account, type Change, type Party } from '@domain/index.ts'
 import { loadAccounts, updateAccount } from '../../api/accounts.ts'
 import SiteNav from '../shell/SiteNav.tsx'
 import AccountEditor, { type AccountEditorMode } from '../accounts/AccountEditor.tsx'
@@ -61,7 +61,6 @@ export default function WorkbenchPage() {
     return status(account) === filter
   }).sort(order)
   const selected = visible.find(account => accountKey(account) === selection) ?? visible[0]
-  const selectedStatus = selected ? explainStatus(selected) : undefined
 
   function select(name: string, fromRecommendation = false) {
     if (fromRecommendation) setFilter('All accounts')
@@ -167,79 +166,71 @@ export default function WorkbenchPage() {
 
           {selected && <section className="panel detail" aria-labelledby="account-title">
             <div className="detail-head">
-              <div><p className="context">Account details</p><h2 tabIndex={-1} ref={heading} id="account-title">{selected.name}</h2></div>
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusPill account={selected} />
-                <button className="secondary" disabled={busy} onClick={() => setAccountEditor({ type: 'details', account: selected })}>Edit account</button>
+              <div>
+                <div className="detail-title">
+                  <h2 tabIndex={-1} ref={heading} id="account-title">{selected.name}</h2>
+                  <StatusPill account={selected} />
+                </div>
+                <p className="detail-meta">Target {dateLabel(selected.target)} · {deadline(selected)} · Started {dateLabel(selected.started)} · Owner {selected.owner || 'Unassigned'}</p>
               </div>
+              <button className="text-button" disabled={busy} onClick={() => setAccountEditor({ type: 'details', account: selected })}>Edit account</button>
             </div>
-            {selectedStatus && <div className="status-explanation">
-              <p>{selectedStatus.reason}</p>
-              <p><strong>Next step</strong> {selectedStatus.next}</p>
-            </div>}
             <div className="detail-content">
               {notice && <div className="notice" role="status"><Check size={17} />{notice}</div>}
               {inlineError && <p className="error" role="alert">{inlineError}</p>}
-              <p className="outcome">{selected.outcome}</p>
-              <dl className="facts">
-                <div><dt>Target date</dt><dd>{dateLabel(selected.target)} <span>· {deadline(selected)}</span></dd></div>
-                <div><dt>Onboarding start</dt><dd>{dateLabel(selected.started)}</dd></div>
-                <div><dt>Account owner</dt><dd>{selected.owner || 'Unassigned'}</dd></div>
-              </dl>
 
-              {!activated(selected) && <section className={`decision ${priority(selected).rank === 0 ? 'urgent' : ''}`}>
-                <div className="section-heading"><h3><Crosshair size={16} /> {priority(selected).label}</h3>
-                  <button className="primary" disabled={busy} onClick={() => setEditor('action')}>{selected.action ? 'Edit intervention' : <><Plus size={16} /> Plan intervention</>}</button></div>
-                <p>{priority(selected).reason}</p>
-                {selected.action && <div className="planned">
+              <section className={`decision ${!activated(selected) && priority(selected).rank === 0 ? 'urgent' : ''}`} aria-label="What to do next">
+                <div className="section-heading">
+                  <p className="decision-lead">{activated(selected) ? explainStatus(selected)?.reason : priority(selected).reason}</p>
+                  {!activated(selected) && <button className="primary" disabled={busy} onClick={() => setEditor('action')}>{selected.action ? 'Edit intervention' : <><Plus size={16} /> Plan intervention</>}</button>}
+                </div>
+                {selected.action && !activated(selected) && <div className="planned">
                   <strong>{selected.action.description}</strong>
                   <p>Owner: {selected.action.owner} · Follow-up: {dateLabel(selected.action.followUp)}</p>
                   <button className="text-button" disabled={busy} onClick={() => saveInline({ type: 'release' }, 'Intervention slot released.')}>Release slot</button>
                 </div>}
-              </section>}
+              </section>
 
               <section className="detail-section">
                 <div className="section-heading"><h3>Milestones</h3><button className="text-button" disabled={busy} onClick={() => setAccountEditor({ type: 'milestone' })}><Plus size={16} /> Add milestone</button></div>
-                <p>Track onboarding activities here. Record verified invoice approval under First value milestone.</p>
+                <p>Setup work only. Invoice approval is recorded under First value.</p>
                 {selected.milestones.length ? <ul className="milestones">{selected.milestones.map((item, index) =>
                   <li key={item.name} className="section-heading"><label><input type="checkbox" checked={item.done} disabled={busy}
                     onChange={event => saveInline({ type: 'milestone', index, expected: item.name, done: event.target.checked }, 'Milestone updated.')} /> {item.name}</label>
                     <button className="text-button" aria-label={`Edit milestone: ${item.name}`} disabled={busy} onClick={() => setAccountEditor({ type: 'milestone', previous: item.name })}>Edit</button>
                   </li>)}</ul>
-                  : <p>No milestones recorded for this account.</p>}
+                  : <p>No milestones yet.</p>}
               </section>
 
               <section className="detail-section">
-                <div className="section-heading"><h3>Blocker or dependency</h3>
+                <div className="section-heading"><h3>Blocker</h3>
                   <button className="text-button" disabled={busy} onClick={() => setEditor('blocker')}>{selected.blocker && !selected.blocker.resolution ? 'Edit blocker' : 'Record blocker'}</button>
                 </div>
                 {selected.blocker ? <>
                   <p>{selected.blocker.description}</p>
-                  <p><strong>{selected.blocker.party} dependency</strong> · {selected.blocker.owner || 'Owner unknown'}</p>
+                  <p><strong>{selected.blocker.party}</strong> · {selected.blocker.owner || 'Owner unknown'}</p>
                   {selected.blocker.resolution ? <p className="resolved"><Check size={16} /> Resolved · {selected.blocker.resolution}</p>
                     : <button className="secondary" disabled={busy} onClick={() => setEditor('resolve')}>Record resolution</button>}
-                </> : <p>No current blocker recorded.</p>}
+                </> : <p>No blocker recorded.</p>}
               </section>
 
               <section className="detail-section">
-                <div className="section-heading"><h3>First value milestone</h3>
+                <div className="section-heading"><h3>First value</h3>
                   {activated(selected) ? <Chip tone="green"><Check size={14} /> Verified</Chip>
-                    : <Chip>Pending verification</Chip>}
+                    : <Chip>Pending</Chip>}
                 </div>
-                <p>The finance owner approves a representative invoice through the agreed approval workflow.</p>
+                <p>{selected.outcome}</p>
                 {activated(selected) && selected.evidence ? <>
                   <p><strong>{selected.evidence.invoice}</strong> · {selected.evidence.approver} · {dateLabel(selected.evidence.date)}</p>
                   <p>{selected.evidence.workflow}</p>
                 </> : <>
-                  <p className="evidence-empty"><Circle size={15} /> No approval evidence recorded.</p>
+                  <p className="evidence-empty"><Circle size={15} /> No approval recorded yet.</p>
                   <button className="secondary" disabled={busy} onClick={() => setEditor('verify')}>Confirm first value</button>
                 </>}
               </section>
-              <section className="detail-section" aria-labelledby="activity-title">
-                <div className="section-heading"><h3 id="activity-title">Activity history</h3></div>
-                {selected.history?.length ? <>
-                  <p className="text-sm">Latest changes · Up to {historyLimit} entries</p>
-                  <ol className="activity-list">{selected.history.map(event =>
+              <section className="detail-section activity" aria-labelledby="activity-title">
+                <h3 id="activity-title">Activity</h3>
+                {selected.history?.length ? <ol className="activity-list">{selected.history.map(event =>
                     <li key={event.id}>
                       <div className="section-heading">
                         <strong>{event.title}</strong>
@@ -249,7 +240,7 @@ export default function WorkbenchPage() {
                       </div>
                       {event.detail && <p>{event.detail}</p>}
                     </li>)}</ol>
-                </> : <p>No changes recorded since activity history was introduced.</p>}
+                  : <p>No activity yet.</p>}
               </section>
             </div>
           </section>}
