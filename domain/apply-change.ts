@@ -89,7 +89,7 @@ export function applyChange(accounts: Account[], key: string, change: Change) {
     case 'details': {
       const validated = accountDetails(accounts, change.value, account)
       Object.assign(errors, validated.errors)
-      next = { ...account, ...validated.details, id: accountKey(account) }
+      next = { ...account, ...validated.details, id: account.id }
       break
     }
     case 'milestone-name': {

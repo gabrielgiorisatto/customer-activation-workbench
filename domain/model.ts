@@ -8,12 +8,12 @@ export type AccountDetails = { name: string; target: string; started: string; ou
 export type AccountEvent = { id: string; at: string; title: string; detail: string }
 export const historyLimit = 20
 export type Account = AccountDetails & {
+  id: string
   history?: AccountEvent[]
-  id?: string
   milestones: { name: string; done: boolean }[]
   blocker?: Blocker; action?: Action; evidence?: Evidence
 }
-export const accountKey = (account: Account) => account.id ?? account.name
+export const accountKey = (account: Account) => account.id
 export const invoiceOutcome = 'Have the finance owner approve a representative invoice through the agreed approval workflow.'
 export const starterMilestones = ['Set up workspace', 'Confirm approval policy', 'Configure agreed workflow', 'Validate representative invoice routing'] as const
 export const suggestedMilestones = [...starterMilestones, 'Import invoice data', 'Train finance team'] as const
