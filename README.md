@@ -2,47 +2,53 @@
 
 [Live demo](https://customer-activation-workbench.onrender.com/) · [Repository](https://github.com/gabrielgiorisatto/customer-activation-workbench)
 
-Head of Customer Success buys it; onboarding managers use it. They pick up to two interventions per week and record first value: finance approved a representative invoice through the agreed workflow—not just checklist completion. Replaces a shared checklist that hides stalled outcomes. Demo date **19 Nov 2026**; synthetic data.
+Submission for the Customer Activation workbench exercise. Product scenario and acceptance criteria are in the original brief; this file describes **how this repository implements and runs it**.
 
-## Stack
+## What runs
 
-React, Tailwind, Vite (`client/`). Express + SQLite sessions per cookie (`server/`). Rules in `domain/` (UI + API). Vitest. Render deploy: [`render.yaml`](render.yaml) — `npm ci --include=dev && npm run build`, `npm start`. Account updates: `PATCH /api/accounts/:id` (seed IDs in `domain/seed-ids.ts`).
+Single Node app: Express serves the React build and a small JSON API. Business rules live in `domain/` and are imported by both the client (labels, ranking on screen) and the server (validation on write). Session state is a JSON blob per browser in SQLite, keyed by an HTTP-only cookie. Demo fixture date: **2026-11-19**.
+
+| Path | Purpose |
+|------|---------|
+| `/` | Workbench — queue, recommendations, account detail, dialogs |
+| `/guide` | Short in-app notes for reviewers |
+| `/data` | Read-only SQL over an in-memory snapshot of the current session |
+
+Account API: `GET /api/accounts`, `PATCH /api/accounts/:id`, `POST /api/accounts`, `POST /api/reset`. Stable seed UUIDs in [`domain/seed-ids.ts`](domain/seed-ids.ts).
+
+## Layout
+
+- **`domain/`** — `applyChange`, priority, slots, activation checks, seed data  
+- **`server/src/`** — `sessions.ts` (request handler), `app.ts` (Express), `sqlite-store.ts`, `index.ts` (dev: Vite middleware; prod: static `client/dist`)  
+- **`client/src/`** — feature folders (`workbench`, `accounts`, `explorer`, `guide`, `shell`), `api/accounts.ts`
+
+Optimistic concurrency on save: `revision` column, up to three retries on `409`.
+
+## Local and deploy
+
+Node 24, npm.
 
 ```sh
-npm ci && npm run dev
+npm ci && npm run dev   # http://localhost:5173
 npm test
 npm run build && npm start
 ```
 
-Reload keeps the session on the same instance; Render free tier may wipe data after redeploy or idle sleep.
+**Render** (Web Service, no Postgres): [`render.yaml`](render.yaml). Build must use `npm ci --include=dev && npm run build` so Vite/TypeScript install. Session file may reset on redeploy or free-tier sleep; reload still tests persistence on a warm instance.
 
-## Trade-off
+## Verification
 
-Auto-recommendations prefer overdue work the team can act on and internal blockers due within three days over closer customer-only deadlines (e.g. Beta vs Zeta). Any account can still be planned manually.
+**Automated:** `npm test` — ranking, validation, weekly slot cap, Beta blocker vs milestone, session isolation, explorer SQL guards.
 
-## Metric
+**Manual on the live URL** (maps to the brief’s scenarios, not repeated here):
 
-Time to verified first value: onboarding start → approval date on file. Report median among verified accounts plus count of unverified in the cohort. Task counts alone do not show finance proved the workflow on a real invoice.
+- Validation, reload, filters / empty state, Alpha–Epsilon paths in the reviewer checklist from the exercise  
+- `/guide` for rule copy wired from the same `domain` constants
 
-## Reviewer checklist
+## Not implemented here
 
-- [ ] Six accounts load on the deploy URL.
-- [ ] Epsilon: missing action owner fails; valid plan persists after reload.
-- [ ] Beta: marking policy milestone done does not remove customer blocker without resolution note.
-- [ ] Gamma: shows evidence, status Activated.
-- [ ] Alpha vs Beta: different blocker types and priority copy.
-- [ ] Epsilon: verify without evidence fails; valid evidence activates and frees a slot.
-- [ ] Empty filter state; resolve Beta and filter Waiting on customer.
-- [ ] Optional: `/guide`, `/data` SQL explorer.
+No Worker/D1 (Render-only deploy), no auth, no external integrations. Evidence and blocker resolutions are form fields, not inbound messages. Blocker edits replace the previous record (no history table).
 
-`npm test` covers ranking, slots, activation, sessions, explorer SQL.
+## Notes on authorship
 
-## Out of scope / limits
-
-No invoice engine, CRM, messaging, auth, or shared prod storage. One cookie per browser; blocker history is not versioned. No formal screen-reader or load pass. Resolutions and evidence in the UI are typed demo records.
-
-## Next steps
-
-Blocker audit trail, retention policy, integrations for customer-owned dependencies (still manual confirmation).
-
-Take-home exercise; AI tools helped build it. Logic in `domain/` and tests above are how to verify—no claimed customer research or savings.
+Take-home build with AI-assisted coding. Behavior is defined in `domain/` and locked by the tests above.
