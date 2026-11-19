@@ -346,10 +346,12 @@ function EditDialog({ account, editor, busy, onClose, onSave }: {
         </>}
         {editor === 'resolve' && <>
           <p>{account.blocker?.party === 'Internal' ? 'Record what the team changed to remove the blocker.' : 'Record how the responsible party confirmed that the dependency was resolved.'}</p>
+          <p className="text-sm text-muted">Simulated for this demo: your note stands in for a customer or owner update—there is no live CRM or inbox integration.</p>
           {field('note', 'Resolution evidence', '', 'textarea')}
         </>}
         {editor === 'verify' && <>
           <p>Record approval by the finance owner through the agreed workflow.</p>
+          <p className="text-sm text-muted">Use fictional invoice references and approval details; this demo does not verify a real payment or invoice system.</p>
           {field('invoice', 'Representative invoice reference')}
           {field('approver', 'Approving finance owner')}
           {field('date', 'Approval date', demoDay, 'date')}

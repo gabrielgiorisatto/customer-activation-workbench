@@ -60,7 +60,7 @@ export default function Guide() {
         <h2 id="metric-heading">How to measure success</h2>
         <p>Track calendar days from onboarding start to the recorded date of a verified approval. Pair the median with the count and age of accounts still waiting for first value so stalled accounts stay visible.</p>
       </section>
-      <footer>Try changes with fictional data. Each browser session keeps its own changes. Use Reset demo data in the Data explorer to restore the starting accounts.</footer>
+      <footer>All data is fictional. Blocker resolutions and first-value evidence are simulated attestations the manager types in—not messages from the customer. Each browser session keeps its own changes. Reset demo data in the Data explorer restores the six seed accounts.</footer>
     </main>
   </>
 }
