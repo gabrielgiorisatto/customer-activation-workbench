@@ -1,77 +1,42 @@
 # Customer Activation Workbench
 
-**Live demo:** https://customer-activation-workbench.onrender.com/  
-**Source:** https://github.com/gabrielgiorisatto/customer-activation-workbench
+[Live demo](https://customer-activation-workbench.onrender.com/) · [Repository](https://github.com/gabrielgiorisatto/customer-activation-workbench)
 
-Onboarding managers use this app to see which customer accounts need help this week, plan up to two interventions, and record proof that finance approved a representative invoice through the agreed workflow—that’s “first value,” not just completed tasks.
-
-Demo date in the UI: **19 Nov 2026**. Six fictional seed accounts. Data is synthetic.
-
----
+Prototype for an onboarding manager: prioritize two interventions per week and record when finance approves a representative invoice through the agreed workflow (first value). Demo date: **19 Nov 2026**. Six seed accounts, fictional data.
 
 ## Stack
 
-| Layer | Tech |
-|-------|------|
-| UI | React 19, Tailwind 4, Vite |
-| API | Express 5, `handleRequest` + cookie session |
-| Persistence | SQLite (`node:sqlite`), one row per browser session |
-| Rules | Shared TypeScript in `domain/` (same logic in UI and server) |
-| Tests | Vitest |
+React 19 + Tailwind + Vite (`client/`). Express (`server/`) serves the API and static build. Business rules live in `domain/` and run on both client and server. Sessions persist in SQLite (`node:sqlite`); each browser gets an HTTP-only cookie. Vitest. Deploy: Render Web Service ([`render.yaml`](render.yaml), build `npm ci --include=dev && npm run build`, start `npm start`). No Postgres.
 
-**Repo layout**
-
-- `domain/` — types, ranking, validation, `applyChange`, seed data and fixed account UUIDs in `seed-ids.ts`
-- `server/` — Express app, session API, schema
-- `client/` — React pages: workbench (`/`), data explorer (`/data`), guide (`/guide`)
-
-Accounts are keyed by **`id`** (`PATCH /api/accounts/:id`). Names are labels only and must stay unique in the portfolio.
-
----
-
-## Run and deploy
-
-**Local** (Node 24, no secrets):
+API updates use account `id` (`PATCH /api/accounts/:id`). Seed UUIDs are in `domain/seed-ids.ts`. Display names stay unique in the portfolio.
 
 ```sh
-npm ci
-npm run dev    # http://localhost:5173 — Express + Vite + activation.sqlite
+npm ci && npm run dev   # localhost:5173
 npm test
-npm run build
-npm start      # serves client/dist + API
+npm run build && npm start
 ```
 
-**Render** (one Web Service, no Postgres): see [`render.yaml`](render.yaml). Build: `npm ci --include=dev && npm run build`. Start: `npm start`. Session data lives on the instance disk—it survives reload but may reset after redeploy or long idle on the free tier.
+On Render, reload keeps session data until redeploy or the free tier idles out.
 
----
+## Walkthrough for reviewers
 
-## Reviewer walkthrough
+1. **Epsilon** — overdue, no owner. Save an intervention without action owner (should fail). Plan an action with owner and follow-up 20 Nov; reload and confirm it stuck.
+2. **Alpha / Beta** — internal blocker vs customer policy. On Beta, check a milestone without resolving the policy dependency.
+3. **Gamma** — already activated. **Zeta** / **Delta** — blocked vs in progress.
+4. **Epsilon** — verify without evidence (fail), then with invoice, approver, date, workflow (Activated, slot freed). Try filters. Resolve Beta’s blocker and filter **Waiting on customer** for empty state.
 
-1. **Epsilon** — overdue, no owner. Try an intervention without action owner (validation), then plan one with owner and follow-up 20 Nov. Reload; plan should persist.
-2. **Alpha vs Beta** — internal mapping blocker vs customer policy dependency. On Beta, completing a milestone must not clear the customer blocker without a resolution note.
-3. **Gamma** — already activated with evidence. **Zeta** / **Delta** — contrast blocked vs in progress.
-4. **Epsilon again** — try verify without evidence, then submit valid evidence (invoice, approver, date, workflow). Account becomes Activated and frees a weekly slot. Use filters; resolve Beta’s blocker to try an empty filter state.
+More detail: `/guide`. Session SQL snapshot: `/data`.
 
-Guide page at `/guide` summarizes priority and capacity rules.
+## Rules (implemented)
 
----
+- Priority: overdue accounts you can act on first; internal blockers due in ≤3 days next; then other non-customer blockers; tie-break by target date, then name.
+- Two intervention slots per week (Mon–Sun), by follow-up date. Release plan or verify first value to free a slot.
+- Activation needs evidence; open blockers must be resolved first. Milestones track activity, not first value.
 
-## Product rules (short)
+Proposed metric: median days from onboarding start to verified approval, plus count of accounts still unverified.
 
-- **Recommendations:** overdue (non–customer-only blocker) first; then internal blockers due within 3 days; then other internal/joint/unknown; tie-break target date, then name. Customer-owned blockers are tracked but not auto-prioritized like internal fixes.
-- **Capacity:** two active interventions per calendar week (Monday–Sunday), by follow-up date. Override by planning any account.
-- **Activation:** evidence required; open blockers must be resolved first. Marking a milestone done does not satisfy a customer dependency (e.g. Beta policy).
+## Tests
 
-**Metric (proposed):** median days from onboarding start to verified approval date; report alongside count of unverified accounts.
+`npm test` — ranking, validation, weekly slots, activation, session isolation, explorer SQL (`domain/`, `server/`, `client/`).
 
----
-
-## Tests and scope
-
-`npm test` checks ranking, validation, two-slot weeks, activation rules, SQLite session isolation, and read-only explorer SQL. Tests sit next to code in `domain/`, `server/`, and `client/`.
-
-**In scope:** demo workflow, reload persistence per browser cookie, basic a11y on controls.
-
-**Out of scope:** real invoice/CRM integrations, auth, multi-user prod storage, predictive ML.
-
-Built for a timed product exercise; AI tools assisted implementation—logic, walkthrough, and tests are in this repo for independent review.
+Not built: real invoice/CRM, auth, shared multi-user storage, ML scoring.
