@@ -24,6 +24,62 @@ Account API: `GET /api/accounts`, `PATCH /api/accounts/:id`, `POST /api/accounts
 
 Optimistic concurrency on save: `revision` column, up to three retries on `409`.
 
+## Logic decisions
+
+Single source: [`domain/rules.ts`](domain/rules.ts), [`domain/apply-change.ts`](domain/apply-change.ts). Constants: `demoDay` = 2026-11-19, `capacity` = 2 intervention slots per week.
+
+### Status labels (queue filters)
+
+Drives the filter dropdown and pills; distinct from recommendation order.
+
+1. **Activated** — evidence on file passes validation (invoice, approver, workflow, approval date between onboarding start and demo day).
+2. Else if open blocker (no resolution): **Waiting on customer** when party is Customer; otherwise **Blocked** (Internal, Joint, Unknown).
+3. Else if target date before demo day: **Needs attention** (overdue, still unverified).
+4. Else **In progress**.
+
+Milestones changing to “done” does not clear a blocker or activate an account.
+
+### Priority rank (`priority()`)
+
+Lower rank = more urgent for sorting the account queue. Used for labels on each account, not only recommendations.
+
+| Rank | When | Label |
+|------|------|--------|
+| 0 | Target passed, open dependency is not Customer-only | Urgent |
+| 1 | Internal blocker and target within 3 days of demo day | Internal unblock |
+| 2 | Open Joint/Unknown blocker (not Customer-only) | Needs coordination |
+| 6 | No open blocker | Monitor |
+| 7 | Open Customer blocker | Customer-owned |
+| 8 | Active intervention (action set, not activated) | Intervention planned |
+| 9 | Activated | Verified |
+
+**Overdue + customer-only blocker** does not get rank 0; those accounts stay Customer-owned (7) so the UI still shows follow-up, but they are not treated as “the team can unblock this now.”
+
+### Recommended interventions (`recommendations()`)
+
+Automated picks above the queue:
+
+- Candidate pool: accounts with `priority().rank <= 2` only (Urgent, Internal unblock, Needs coordination).
+- Sort: rank ascending, then target date, then account name.
+- Count cap: `capacity` minus interventions already planned in the **same ISO week as demo day** (Monday–Sunday UTC, based on follow-up date, not target date).
+- Accounts that already have a plan (rank 8) drop out of the pool because their rank is > 2.
+- Manager can still plan any account manually; recommendations are a default, not a lock.
+
+**Why this ordering:** rank 0 catches overdue accounts where the onboarding team can still act (Epsilon before customer-bound Beta). Rank 1 surfaces Alpha-style internal fixes before the target window closes. Customer-owned work (Beta) stays visible in the queue at rank 7 but is not auto-suggested when slots are scarce—tests assert Epsilon + Alpha in the initial pick, not Beta.
+
+### Intervention capacity
+
+- A plan counts toward the week of its **follow-up** date (`interventionWeek()`).
+- At most two active (non-activated) plans per week; saving a third returns validation on follow-up.
+- Follow-up must be demo day or later (fixture: no backdated plans).
+- Releasing a plan or verifying first value frees a slot in that follow-up week.
+
+### First value (activation)
+
+- Server and client both call `applyChange`; evidence rules in `evidenceErrors()`.
+- Cannot verify while an open blocker exists (resolution note required first).
+- Milestone completion alone never sets activated.
+
 ## Local and deploy
 
 Node 24, npm.
